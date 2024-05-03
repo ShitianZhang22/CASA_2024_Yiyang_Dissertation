@@ -4,7 +4,7 @@ It is a repository for dissertation, co-operated with Huanfa
 ## Data
 Available at: https://github.com/djdunc/hercules
 
-Files \( Px_input.csv \)
+Files `Px_input.csv`
 
 Data object with each step in dataset:
 
