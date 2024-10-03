@@ -15,6 +15,10 @@ def reset_random_seed():
     rng = np.random.default_rng(seed=int(time.time()))
 
 
+theta = np.array([0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0,
+                  7 * np.pi / 4.0], dtype=np.float32)
+
+
 # parameters for the genetic algorithm
 elite_rate = 0.2
 select_rate = 0.3

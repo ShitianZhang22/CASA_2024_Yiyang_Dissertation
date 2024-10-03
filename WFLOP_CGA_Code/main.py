@@ -1,9 +1,7 @@
-import numpy as np
 import pandas as pd
 import MARS  # MARS (Multivariate Adaptive Regression Splines) regression class
 import WindFarmGeneticToolbox  # wind farm layout optimization using genetic algorithms classes
 from datetime import datetime
-import os
 import pickle
 from config import *
 
@@ -27,9 +25,7 @@ the first gen of layouts in init_pop
 # generate initial populations
 ################################################
 
-for i in range(n_init_pops):
-    wfg.gen_init_pop()
-    wfg.save_init_pop("{}/init_{}.dat".format(init_pops_data_folder,i))
+wfg.gen_init_pop()
 
 #############################################
 # generate wind distribution surface

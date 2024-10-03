@@ -1,7 +1,4 @@
 import math
-import numpy as np
-import time
-import MARS
 from datetime import datetime
 from config import *
 
@@ -28,19 +25,12 @@ class WindFarmGenetic:
     f_theta_v is proportion of wind in 8 directions
     '''
     def init_8_direction_1_WeatherSpark_Max(self):
-        self.theta = np.array(
-            [0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0, 7 * np.pi / 4.0], dtype=np.float32)  # 1.0/4
         self.velocity = np.array([6.67], dtype=np.float32)  # 1
         self.f_theta_v = np.array([[0.14], [0.06], [0.2], [0.09], [0.22], [0.08], [0.16], [0.05]], dtype=np.float32)
     
     def init_8_direction_1_WeatherSpark_Min(self):
-        self.theta = np.array(
-            [0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0, 7 * np.pi / 4.0], dtype=np.float32)  # 1.0/4
         self.velocity = np.array([4.5], dtype=np.float32)  # 1
         self.f_theta_v = np.array([[0.2], [0.04], [0.15], [0.06], [0.2], [0.1], [0.18], [0.07]], dtype=np.float32)
-
-    def cost(self, N):
-        return 1.0 * N * (2.0 / 3.0 + 1.0 / 3.0 * math.exp(-0.00174 * N ** 2))
 
     '''
     generate the 1st gen of layouts (via gen_pop method)
@@ -48,17 +38,16 @@ class WindFarmGenetic:
     Non-zero coordinates (turbines) are recorded within. (process can be realised via numpy built-in methods)
     '''
     def gen_init_pop(self):
-        self.init_pop = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=pop_size, N=N)
-        self.init_pop_nonezero_indices = np.zeros((pop_size, N), dtype=np.int32)
-        for ind_init_pop in range(pop_size):
-            ind_indices = 0
-            for ind in range(rows * cols):
-                if self.init_pop[ind_init_pop, ind] == 1:
-                    self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
-                    ind_indices += 1
-
-    def save_init_pop(self, fname):
-        np.savetxt(fname, self.init_pop, fmt='%d', delimiter="  ")
+        for i in range(n_init_pops):
+            self.init_pop = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=pop_size, N=N)
+            self.init_pop_nonezero_indices = np.zeros((pop_size, N), dtype=np.int32)
+            for ind_init_pop in range(pop_size):
+                ind_indices = 0
+                for ind in range(rows * cols):
+                    if self.init_pop[ind_init_pop, ind] == 1:
+                        self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
+                        ind_indices += 1
+            np.savetxt("{}/init_{}.dat".format(init_pops_data_folder,i), self.init_pop, fmt='%d', delimiter="  ")
 
     def load_init_pop(self, fname):
         self.init_pop = np.genfromtxt(fname, delimiter="  ", dtype=np.int32)
@@ -76,7 +65,7 @@ class WindFarmGenetic:
     '''
     def cal_P_rate_total(self):
         f_p = 0.0
-        for ind_t in range(len(self.theta)):
+        for ind_t in range(len(theta)):
             for ind_v in range(len(self.velocity)):
                 f_p += self.f_theta_v[ind_t, ind_v] * self.turbine.P_i_X(self.velocity[ind_v])
         return N * f_p
@@ -141,14 +130,14 @@ class WindFarmGenetic:
                     ind_position[ind_pos] = ind
                     ind_pos += 1
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
-            for ind_t in range(len(self.theta)):
+            for ind_t in range(len(theta)):
                 '''
                 fix wind direction and rotate the layout (7 times) for different direction of winds
                 '''
                 for ind_v in range(len(self.velocity)):
                     trans_matrix = np.array(
-                        [[np.cos(self.theta[ind_t]), -np.sin(self.theta[ind_t])],
-                         [np.sin(self.theta[ind_t]), np.cos(self.theta[ind_t])]],
+                        [[np.cos(theta[ind_t]), -np.sin(theta[ind_t])],
+                         [np.sin(theta[ind_t]), np.cos(theta[ind_t])]],
                         np.float32)
                     trans_xy_position = np.matmul(trans_matrix, xy_position)
                     '''
@@ -164,135 +153,6 @@ class WindFarmGenetic:
                     lp_power_accum += lp_power
 
             lp[i, ind_position] = lp_power_accum
-
-    '''
-    no usage
-    '''
-    # conventional genetic algorithm for WFLOP (wind farm layout optimization problem)
-    def MC_gen_alg(self):
-        mars = MARS.MARS()
-        mars.load_mars_model_from_file("mc_single_direction_single_speed.mars")
-        print("Monte Carlo genetic algorithm starts....")
-        fitness_generations = np.zeros(iteration, dtype=np.float32)
-        best_layout_generations = np.zeros((iteration, rows * cols), dtype=np.int32)
-        power_order = np.zeros((pop_size, N),
-                               dtype=np.int32)  # in each layout, order turbine power from least to largest
-        pop = np.copy(self.init_pop)
-        eN = int(np.floor(pop_size * elite_rate))  # elite number
-        rN = int(int(np.floor(pop_size * mutate_rate)) / eN) * eN  # reproduce number
-        mN = rN  # mutation number
-        cN = pop_size - eN - mN  # crossover number
-
-        for gen in range(iteration):
-            print("generation {}...".format(gen))
-            fitness_value = self.AGA_fitness(pop=pop, rows=rows, cols=cols, pop_size=pop_size,
-                                             N=N,
-                                             po=power_order)
-            sorted_index = np.argsort(-fitness_value)  # fitness value descending from largest to least
-            fitness_generations[gen] = fitness_value[sorted_index[0]]
-            pop = pop[sorted_index, :]
-            power_order = power_order[sorted_index, :]
-            best_layout_generations[gen, :] = pop[0, :]
-            self.MC_reproduce(pop=pop, eN=eN, rN=mN)
-            self.MC_crossover(pop=pop, rows=rows, cols=cols, pop_size=pop_size, N=N, cN=cN)
-            self.MC_mutation(pop=pop, rows=rows, cols=cols, pop_size=pop_size, N=N, eN=eN,
-                             mN=mN, po=power_order, mars=mars)
-        filename = "MC_fitness_N{}.dat".format(N)
-        np.savetxt(filename, fitness_generations, fmt='%f', delimiter="  ")
-        filename = "MC_best_layouts_N{}.dat".format(N)
-        np.savetxt(filename, best_layout_generations, fmt='%d', delimiter="  ")
-        print("Monte Carlo genetic algorithm ends.")
-
-    # rN : reproduce number
-    def MC_reproduce(self, pop, eN, rN):
-        copies = int(rN / eN)
-        for i in range(eN):
-            pop[eN + copies * i:eN + copies * (i + 1), :] = pop[i, :]
-
-    # crossover from start index to end index (start index included, end index excluded)
-    def MC_crossover(self, pop, rows, cols, pop_size, N, cN):
-        pop[pop_size - cN:pop_size, :] = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=cN, N=N)
-
-    def MC_mutation(self, pop, rows, cols, pop_size, N, eN, mN, po, mars):
-        # reset_random_seed()
-        copies = int(mN / eN)
-        ind = eN
-
-        n_candiate = 5
-        pos_candidate = np.zeros((n_candiate, 2), dtype=np.int32)
-        ind_pos_candidate = np.zeros(n_candiate, dtype=np.int32)
-        for i in range(eN):
-            turbine_pos = po[i, 0]
-            for j in range(copies):
-                ind_can = 0
-                while True:
-                    
-                    null_turbine_pos = rng.integers(0, cols * rows)
-                    if pop[i, null_turbine_pos] == 0:
-                        pos_candidate[ind_can, 1] = int(np.floor(null_turbine_pos / cols))
-                        pos_candidate[ind_can, 0] = int(np.floor(null_turbine_pos - pos_candidate[ind_can, 1] * cols))
-                        ind_pos_candidate[ind_can] = null_turbine_pos
-                        ind_can += 1
-                        if ind_can == n_candiate:
-                            break
-                mars_val = mars.predict(pos_candidate)
-                mars_val = mars_val[:, 0]
-                sorted_index = np.argsort(mars_val)  # fitness value descending from least to largest
-                null_turbine_pos = ind_pos_candidate[sorted_index[0]]
-                pop[ind, turbine_pos] = 0
-                pop[ind, null_turbine_pos] = 1
-                ind += 1
-
-    def MC_fitness(self, pop, rows, cols, pop_size, N, po):
-        fitness_val = np.zeros(pop_size, dtype=np.float32)
-        for i in range(pop_size):
-
-            # layout = np.reshape(pop[i, :], newshape=(rows, cols))
-            xy_position = np.zeros((2, N), dtype=np.float32)  # x y position
-            cr_position = np.zeros((2, N), dtype=np.int32)  # column row position
-            ind_position = np.zeros(N, dtype=np.int32)
-            ind_pos = 0
-            for ind in range(rows * cols):
-                if pop[i, ind] == 1:
-                    r_i = np.floor(ind / cols)
-                    c_i = np.floor(ind - r_i * cols)
-                    cr_position[0, ind_pos] = c_i
-                    cr_position[1, ind_pos] = r_i
-                    xy_position[0, ind_pos] = c_i * cell_width + self.cell_width_half
-                    xy_position[1, ind_pos] = r_i * cell_width + self.cell_width_half
-                    ind_position[ind_pos] = ind
-                    ind_pos += 1
-            lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
-            for ind_t in range(len(self.theta)):
-                for ind_v in range(len(self.velocity)):
-                    # print(theta[ind_t])
-                    # print(np.cos(theta[ind_t]))
-                    trans_matrix = np.array(
-                        [[np.cos(self.theta[ind_t]), -np.sin(self.theta[ind_t])],
-                         [np.sin(self.theta[ind_t]), np.cos(self.theta[ind_t])]],
-                        np.float32)
-
-                    trans_xy_position = np.matmul(trans_matrix, xy_position)
-
-                    speed_deficiency = self.wake_calculate(trans_xy_position, N)
-
-                    actual_velocity = (1 - speed_deficiency) * self.velocity[ind_v]
-                    lp_power = self.layout_power(actual_velocity,
-                                                 N)  # total power of a specific layout specific wind speed specific theta
-                    lp_power = lp_power * self.f_theta_v[ind_t, ind_v]
-                    lp_power_accum += lp_power
-
-            sorted_index = np.argsort(lp_power_accum)  # power from least to largest
-            po[i, :] = ind_position[sorted_index]
-
-            fitness_val[i] = np.sum(lp_power_accum)
-        return fitness_val
-
-    def MC_layout_power(self, velocity, N):
-        power = np.zeros(N, dtype=np.float32)
-        for i in range(N):
-            power[i] = self.turbine.P_i_X(velocity[i])
-        return power
 
     '''
     this and the next are to calculate wakes with formula in the paper
@@ -529,13 +389,13 @@ class WindFarmGenetic:
             above coordinate transfer again
             '''
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
-            for ind_t in range(len(self.theta)):
+            for ind_t in range(len(theta)):
                 for ind_v in range(len(self.velocity)):
                     # print(theta[ind_t])
                     # print(np.cos(theta[ind_t]))
                     trans_matrix = np.array(
-                        [[np.cos(self.theta[ind_t]), -np.sin(self.theta[ind_t])],
-                         [np.sin(self.theta[ind_t]), np.cos(self.theta[ind_t])]],
+                        [[np.cos(theta[ind_t]), -np.sin(theta[ind_t])],
+                         [np.sin(theta[ind_t]), np.cos(theta[ind_t])]],
                         np.float32)
 
                     trans_xy_position = np.matmul(trans_matrix, xy_position)
@@ -553,46 +413,6 @@ class WindFarmGenetic:
 
             fitness_val[i] = np.sum(lp_power_accum)
         return fitness_val
-
-    def cal_slope(self, n, yi, xi):
-        sumx = 0.0
-        sumy = 0.0
-        sumxy = 0.0
-        for i in range(n):
-            sumx += xi[i]
-            sumy += yi[i]
-            sumxy += xi[i] * yi[i]
-        b = n * sumxy - sumx * sumy
-        return b
-    
-    def calculate_eta(self, layout):
-        """
-        计算给定布局的eta
-        :param layout: 现有布局，numpy数组
-        :return: eta
-        """
-        layout = layout.flatten()
-        
-        # 设置初始种群为给定的布局
-        self.init_pop = np.array([layout])
-        self.init_pop_nonezero_indices = np.zeros((1, N), dtype=np.int32)
-        ind_indices = 0
-        for ind in range(rows * cols):
-            if layout[ind] == 1:
-                self.init_pop_nonezero_indices[0, ind_indices] = ind
-                ind_indices += 1
-
-        # 计算总功率
-        P_rate_total = self.cal_P_rate_total()
-
-        # 计算布局的功率分布
-        power_order = np.zeros((1, N), dtype=np.int32)
-        fitness_value = self.conventional_fitness(pop=self.init_pop, rows=rows, cols=cols, pop_size=1, N=N, po=power_order)
-
-        # 计算eta
-        eta = fitness_value[0] * (1.0 / P_rate_total)
-
-        return eta, fitness_value[0], P_rate_total
 
 
 '''
@@ -643,6 +463,8 @@ class LayoutGridMCGenerator:
     '''
     another layout set again?
     '''
+
+    @staticmethod
     def gen_mc_grid(rows, cols, n, N, lofname):  # generate monte carlo wind farm layout grids
         # reset_random_seed()  # init random seed
         layouts = np.zeros((n, rows * cols), dtype=np.int32)  # one row is a layout
