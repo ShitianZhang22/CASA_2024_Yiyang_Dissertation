@@ -10,24 +10,13 @@ version: 1.0.0
 '''
 
 
-# np.random.seed(seed=int(time.time()))
+# # reset_random_seed()
 class WindFarmGenetic:
 
     # constructor of class WindFarmGenetic
     def __init__(self):
         self.turbine = GE_1_5_sleTurbine()
-        self.rows = rows
-        self.cols = cols
-        self.N = N
-        self.pop_size = pop_size
-        self.iteration = iteration
-        self.cell_width = cell_width
         self.cell_width_half = cell_width * 0.5
-
-        self.elite_rate = elite_rate
-        self.cross_rate = cross_rate
-        self.random_rate = random_rate
-        self.mutate_rate = mutate_rate
 
         self.init_pop = None
         self.init_pop_nonezero_indices = None
@@ -59,11 +48,11 @@ class WindFarmGenetic:
     Non-zero coordinates (turbines) are recorded within. (process can be realised via numpy built-in methods)
     '''
     def gen_init_pop(self):
-        self.init_pop = LayoutGridMCGenerator.gen_pop(rows=self.rows, cols=self.cols, n=self.pop_size, N=self.N)
-        self.init_pop_nonezero_indices = np.zeros((self.pop_size, self.N), dtype=np.int32)
-        for ind_init_pop in range(self.pop_size):
+        self.init_pop = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=pop_size, N=N)
+        self.init_pop_nonezero_indices = np.zeros((pop_size, N), dtype=np.int32)
+        for ind_init_pop in range(pop_size):
             ind_indices = 0
-            for ind in range(self.rows * self.cols):
+            for ind in range(rows * cols):
                 if self.init_pop[ind_init_pop, ind] == 1:
                     self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
                     ind_indices += 1
@@ -73,10 +62,10 @@ class WindFarmGenetic:
 
     def load_init_pop(self, fname):
         self.init_pop = np.genfromtxt(fname, delimiter="  ", dtype=np.int32)
-        self.init_pop_nonezero_indices = np.zeros((self.pop_size, self.N), dtype=np.int32)
-        for ind_init_pop in range(self.pop_size):
+        self.init_pop_nonezero_indices = np.zeros((pop_size, N), dtype=np.int32)
+        for ind_init_pop in range(pop_size):
             ind_indices = 0
-            for ind in range(self.rows * self.cols):
+            for ind in range(rows * cols):
                 if self.init_pop[ind_init_pop, ind] == 1:
                     self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
                     ind_indices += 1
@@ -90,7 +79,7 @@ class WindFarmGenetic:
         for ind_t in range(len(self.theta)):
             for ind_v in range(len(self.velocity)):
                 f_p += self.f_theta_v[ind_t, ind_v] * self.turbine.P_i_X(self.velocity[ind_v])
-        return self.N * f_p
+        return N * f_p
 
     def layout_power(self, velocity, N):
         power = np.zeros(N, dtype=np.float32)
@@ -147,8 +136,8 @@ class WindFarmGenetic:
                     c_i = np.floor(ind - r_i * cols)
                     cr_position[0, ind_pos] = c_i
                     cr_position[1, ind_pos] = r_i
-                    xy_position[0, ind_pos] = c_i * self.cell_width + self.cell_width_half
-                    xy_position[1, ind_pos] = r_i * self.cell_width + self.cell_width_half
+                    xy_position[0, ind_pos] = c_i * cell_width + self.cell_width_half
+                    xy_position[1, ind_pos] = r_i * cell_width + self.cell_width_half
                     ind_position[ind_pos] = ind
                     ind_pos += 1
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
@@ -184,20 +173,20 @@ class WindFarmGenetic:
         mars = MARS.MARS()
         mars.load_mars_model_from_file("mc_single_direction_single_speed.mars")
         print("Monte Carlo genetic algorithm starts....")
-        fitness_generations = np.zeros(self.iteration, dtype=np.float32)
-        best_layout_generations = np.zeros((self.iteration, self.rows * self.cols), dtype=np.int32)
-        power_order = np.zeros((self.pop_size, self.N),
+        fitness_generations = np.zeros(iteration, dtype=np.float32)
+        best_layout_generations = np.zeros((iteration, rows * cols), dtype=np.int32)
+        power_order = np.zeros((pop_size, N),
                                dtype=np.int32)  # in each layout, order turbine power from least to largest
         pop = np.copy(self.init_pop)
-        eN = int(np.floor(self.pop_size * self.elite_rate))  # elite number
-        rN = int(int(np.floor(self.pop_size * self.mutate_rate)) / eN) * eN  # reproduce number
+        eN = int(np.floor(pop_size * elite_rate))  # elite number
+        rN = int(int(np.floor(pop_size * mutate_rate)) / eN) * eN  # reproduce number
         mN = rN  # mutation number
-        cN = self.pop_size - eN - mN  # crossover number
+        cN = pop_size - eN - mN  # crossover number
 
-        for gen in range(self.iteration):
+        for gen in range(iteration):
             print("generation {}...".format(gen))
-            fitness_value = self.AGA_fitness(pop=pop, rows=self.rows, cols=self.cols, pop_size=self.pop_size,
-                                             N=self.N,
+            fitness_value = self.AGA_fitness(pop=pop, rows=rows, cols=cols, pop_size=pop_size,
+                                             N=N,
                                              po=power_order)
             sorted_index = np.argsort(-fitness_value)  # fitness value descending from largest to least
             fitness_generations[gen] = fitness_value[sorted_index[0]]
@@ -205,12 +194,12 @@ class WindFarmGenetic:
             power_order = power_order[sorted_index, :]
             best_layout_generations[gen, :] = pop[0, :]
             self.MC_reproduce(pop=pop, eN=eN, rN=mN)
-            self.MC_crossover(pop=pop, rows=self.rows, cols=self.cols, pop_size=self.pop_size, N=self.N, cN=cN)
-            self.MC_mutation(pop=pop, rows=self.rows, cols=self.cols, pop_size=self.pop_size, N=self.N, eN=eN,
+            self.MC_crossover(pop=pop, rows=rows, cols=cols, pop_size=pop_size, N=N, cN=cN)
+            self.MC_mutation(pop=pop, rows=rows, cols=cols, pop_size=pop_size, N=N, eN=eN,
                              mN=mN, po=power_order, mars=mars)
-        filename = "MC_fitness_N{}.dat".format(self.N)
+        filename = "MC_fitness_N{}.dat".format(N)
         np.savetxt(filename, fitness_generations, fmt='%f', delimiter="  ")
-        filename = "MC_best_layouts_N{}.dat".format(self.N)
+        filename = "MC_best_layouts_N{}.dat".format(N)
         np.savetxt(filename, best_layout_generations, fmt='%d', delimiter="  ")
         print("Monte Carlo genetic algorithm ends.")
 
@@ -225,7 +214,7 @@ class WindFarmGenetic:
         pop[pop_size - cN:pop_size, :] = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=cN, N=N)
 
     def MC_mutation(self, pop, rows, cols, pop_size, N, eN, mN, po, mars):
-        np.random.seed(seed=int(time.time()))
+        # reset_random_seed()
         copies = int(mN / eN)
         ind = eN
 
@@ -237,7 +226,8 @@ class WindFarmGenetic:
             for j in range(copies):
                 ind_can = 0
                 while True:
-                    null_turbine_pos = np.random.randint(0, cols * rows)
+                    
+                    null_turbine_pos = rng.integers(0, cols * rows)
                     if pop[i, null_turbine_pos] == 0:
                         pos_candidate[ind_can, 1] = int(np.floor(null_turbine_pos / cols))
                         pos_candidate[ind_can, 0] = int(np.floor(null_turbine_pos - pos_candidate[ind_can, 1] * cols))
@@ -268,8 +258,8 @@ class WindFarmGenetic:
                     c_i = np.floor(ind - r_i * cols)
                     cr_position[0, ind_pos] = c_i
                     cr_position[1, ind_pos] = r_i
-                    xy_position[0, ind_pos] = c_i * self.cell_width + self.cell_width_half
-                    xy_position[1, ind_pos] = r_i * self.cell_width + self.cell_width_half
+                    xy_position[0, ind_pos] = c_i * cell_width + self.cell_width_half
+                    xy_position[1, ind_pos] = r_i * cell_width + self.cell_width_half
                     ind_position[ind_pos] = ind
                     ind_pos += 1
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
@@ -375,29 +365,29 @@ class WindFarmGenetic:
         '''
         start_time = datetime.now()
         print("conventional genetic algorithm starts....")
-        fitness_generations = np.zeros(self.iteration, dtype=np.float32)  # best fitness value in each generation
-        best_layout_generations = np.zeros((self.iteration, self.rows * self.cols),
+        fitness_generations = np.zeros(iteration, dtype=np.float32)  # best fitness value in each generation
+        best_layout_generations = np.zeros((iteration, rows * cols),
                                            dtype=np.int32)  # best layout in each generation
-        power_order = np.zeros((self.pop_size, self.N),
+        power_order = np.zeros((pop_size, N),
                                dtype=np.int32)  # each row is a layout cell indices. in each layout, order turbine power from least to largest
         pop = np.copy(self.init_pop)
         pop_indices = np.copy(self.init_pop_nonezero_indices)  # each row is a layout cell indices.
 
-        eN = int(np.floor(self.pop_size * self.elite_rate))  # elite number
-        rN = int(int(np.floor(self.pop_size * self.mutate_rate)) / eN) * eN  # reproduce number
+        eN = int(np.floor(pop_size * elite_rate))  # elite number
+        rN = int(int(np.floor(pop_size * mutate_rate)) / eN) * eN  # reproduce number
         mN = rN  # mutation number
-        cN = self.pop_size - eN - mN  # crossover number
+        cN = pop_size - eN - mN  # crossover number
 
         # 新增数组来存储每代最优个体的eta值历史
-        best_eta_history = np.zeros(self.iteration, dtype=np.float32)
+        best_eta_history = np.zeros(iteration, dtype=np.float32)
         '''
         power for each turbine in a layout is stored in fitness_value
         '''
 
-        for gen in range(self.iteration):
+        for gen in range(iteration):
             print("generation {}...".format(gen))
-            fitness_value = self.conventional_fitness(pop=pop, rows=self.rows, cols=self.cols, pop_size=self.pop_size,
-                                                      N=self.N,
+            fitness_value = self.conventional_fitness(pop=pop, rows=rows, cols=cols, pop_size=pop_size,
+                                                      N=N,
                                                       po=power_order)
             sorted_index = np.argsort(-fitness_value)  # fitness value descending from largest to least
 
@@ -422,23 +412,23 @@ class WindFarmGenetic:
             select, crossover and mutate
             '''
             n_parents, parent_layouts, parent_pop_indices = self.conventional_select(pop=pop, pop_indices=pop_indices,
-                                                                                     pop_size=self.pop_size,
-                                                                                     elite_rate=self.elite_rate,
-                                                                                     random_rate=self.random_rate)
-            self.conventional_crossover(N=self.N, pop=pop, pop_indices=pop_indices, pop_size=self.pop_size,
+                                                                                     pop_size=pop_size,
+                                                                                     elite_rate=elite_rate,
+                                                                                     select_rate=select_rate)
+            self.conventional_crossover(N=N, pop=pop, pop_indices=pop_indices, pop_size=pop_size,
                                         n_parents=n_parents,
                                         parent_layouts=parent_layouts, parent_pop_indices=parent_pop_indices)
-            self.conventional_mutation(rows=self.rows, cols=self.cols, N=self.N, pop=pop, pop_indices=pop_indices,
-                                       pop_size=self.pop_size,
-                                       mutation_rate=self.mutate_rate)
+            self.conventional_mutation(rows=rows, cols=cols, N=N, pop=pop, pop_indices=pop_indices,
+                                       pop_size=pop_size,
+                                       mutation_rate=mutate_rate)
         end_time = datetime.now()
         run_time = (end_time - start_time).total_seconds()
         eta_generations = np.copy(fitness_generations)
         eta_generations = eta_generations * (1.0 / P_rate_total)
         time_stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = "{}/conventional_eta_N{}_{}_{}.dat".format(result_folder, self.N, ind_time, time_stamp)
+        filename = "{}/conventional_eta_N{}_{}_{}.dat".format(result_folder, N, ind_time, time_stamp)
         np.savetxt(filename, eta_generations, fmt='%f', delimiter="  ")
-        filename = "{}/conventional_best_layouts_N{}_{}_{}.dat".format(result_folder, self.N, ind_time, time_stamp)
+        filename = "{}/conventional_best_layouts_N{}_{}_{}.dat".format(result_folder, N, ind_time, time_stamp)
         np.savetxt(filename, best_layout_generations, fmt='%d', delimiter="  ")
         print("conventional genetic algorithm ends.")
         filename = "{}/conventional_runtime.txt".format(result_folder)  # time used to run the method in seconds
@@ -448,26 +438,26 @@ class WindFarmGenetic:
 
         filename = "{}/conventional_eta.txt".format(result_folder)  # all best etas
         f = open(filename, "a+")
-        f.write("{}\n".format(eta_generations[self.iteration - 1]))
+        f.write("{}\n".format(eta_generations[iteration - 1]))
         f.close()
 
         # 保存每代最优个体的eta值历史
-        filename = "{}/best_eta_history_N{}_{}_{}.dat".format(result_folder, self.N, ind_time, time_stamp)
+        filename = "{}/best_eta_history_N{}_{}_{}.dat".format(result_folder, N, ind_time, time_stamp)
         np.savetxt(filename, best_eta_history, fmt='%f', delimiter="  ")
 
-        return run_time, eta_generations[self.iteration - 1]
+        return run_time, eta_generations[iteration - 1]
 
     def conventional_mutation(self, rows, cols, N, pop, pop_indices, pop_size, mutation_rate):
-        np.random.seed(seed=int(time.time()))
+        # reset_random_seed()
         for i in range(pop_size):
-            if np.random.randn() > mutation_rate:
+            if rng.uniform() > mutation_rate:
                 continue
             while True:
-                turbine_pos = np.random.randint(0, cols * rows)
+                turbine_pos = rng.integers(0, cols * rows)
                 if pop[i, turbine_pos] == 1:
                     break
             while True:
-                null_turbine_pos = np.random.randint(0, cols * rows)
+                null_turbine_pos = rng.integers(0, cols * rows)
                 if pop[i, null_turbine_pos] == 0:
                     break
             pop[i, turbine_pos] = 0
@@ -481,12 +471,12 @@ class WindFarmGenetic:
     def conventional_crossover(self, N, pop, pop_indices, pop_size, n_parents,
                                parent_layouts, parent_pop_indices):
         n_counter = 0
-        np.random.seed(seed=int(time.time()))  # init random seed
+        # reset_random_seed()  # init random seed
         while n_counter < pop_size:
-            male = np.random.randint(0, n_parents)
-            female = np.random.randint(0, n_parents)
+            male = rng.integers(0, n_parents)
+            female = rng.integers(0, n_parents)
             if male != female:
-                cross_point = np.random.randint(1, N)
+                cross_point = rng.integers(1, N)
                 if parent_pop_indices[male, cross_point - 1] < parent_pop_indices[female, cross_point]:
                     pop[n_counter, :] = 0
                     pop[n_counter, :parent_pop_indices[male, cross_point - 1] + 1] = parent_layouts[male,
@@ -498,12 +488,12 @@ class WindFarmGenetic:
                     pop_indices[n_counter, cross_point:] = parent_pop_indices[female, cross_point:]
                     n_counter += 1
 
-    def conventional_select(self, pop, pop_indices, pop_size, elite_rate, random_rate):
+    def conventional_select(self, pop, pop_indices, pop_size, elite_rate, select_rate):
         n_elite = int(pop_size * elite_rate)
         parents_ind = [i for i in range(n_elite)]
-        np.random.seed(seed=int(time.time()))  # init random seed
+        # reset_random_seed()  # init random seed
         for i in range(n_elite, pop_size):
-            if np.random.randn() < random_rate:
+            if rng.uniform() < select_rate:
                 parents_ind.append(i)
         parent_layouts = pop[parents_ind, :]
         parent_pop_indices = pop_indices[parents_ind, :]
@@ -531,8 +521,8 @@ class WindFarmGenetic:
                     c_i = np.floor(ind - r_i * cols)
                     cr_position[0, ind_pos] = c_i
                     cr_position[1, ind_pos] = r_i
-                    xy_position[0, ind_pos] = c_i * self.cell_width + self.cell_width_half
-                    xy_position[1, ind_pos] = r_i * self.cell_width + self.cell_width_half
+                    xy_position[0, ind_pos] = c_i * cell_width + self.cell_width_half
+                    xy_position[1, ind_pos] = r_i * cell_width + self.cell_width_half
                     ind_position[ind_pos] = ind
                     ind_pos += 1
             '''
@@ -585,9 +575,9 @@ class WindFarmGenetic:
         
         # 设置初始种群为给定的布局
         self.init_pop = np.array([layout])
-        self.init_pop_nonezero_indices = np.zeros((1, self.N), dtype=np.int32)
+        self.init_pop_nonezero_indices = np.zeros((1, N), dtype=np.int32)
         ind_indices = 0
-        for ind in range(self.rows * self.cols):
+        for ind in range(rows * cols):
             if layout[ind] == 1:
                 self.init_pop_nonezero_indices[0, ind_indices] = ind
                 ind_indices += 1
@@ -596,8 +586,8 @@ class WindFarmGenetic:
         P_rate_total = self.cal_P_rate_total()
 
         # 计算布局的功率分布
-        power_order = np.zeros((1, self.N), dtype=np.int32)
-        fitness_value = self.conventional_fitness(pop=self.init_pop, rows=self.rows, cols=self.cols, pop_size=1, N=self.N, po=power_order)
+        power_order = np.zeros((1, N), dtype=np.int32)
+        fitness_value = self.conventional_fitness(pop=self.init_pop, rows=rows, cols=cols, pop_size=1, N=N, po=power_order)
 
         # 计算eta
         eta = fitness_value[0] * (1.0 / P_rate_total)
@@ -654,11 +644,11 @@ class LayoutGridMCGenerator:
     another layout set again?
     '''
     def gen_mc_grid(rows, cols, n, N, lofname):  # generate monte carlo wind farm layout grids
-        np.random.seed(seed=int(time.time()))  # init random seed
+        # reset_random_seed()  # init random seed
         layouts = np.zeros((n, rows * cols), dtype=np.int32)  # one row is a layout
         # layouts_cr = np.zeros((n*, 2), dtype=np.float32)  # layouts column row index
-        positionX = np.random.randint(0, cols, size=(N * n * 2))
-        positionY = np.random.randint(0, rows, size=(N * n * 2))
+        positionX = rng.integers(0, cols, size=(N * n * 2))
+        positionY = rng.integers(0, rows, size=(N * n * 2))
         ind_rows = 0  # index of layouts from 0 to n-1
         ind_pos = 0  # index of positionX, positionY from 0 to N*n*2-1
         # ind_crs = 0
@@ -689,10 +679,10 @@ class LayoutGridMCGenerator:
     # generate population
     def gen_pop(rows, cols, n,
                 N):  # generate population very similar to gen_mc_grid, just without saving layouts to a file
-        np.random.seed(seed=int(time.time()))
+        # reset_random_seed()
         layouts = np.zeros((n, rows * cols), dtype=np.int32)
-        positionX = np.random.randint(0, cols, size=(N * n * 2))
-        positionY = np.random.randint(0, rows, size=(N * n * 2))
+        positionX = rng.integers(0, cols, size=(N * n * 2))
+        positionY = rng.integers(0, rows, size=(N * n * 2))
         ind_rows = 0
         ind_pos = 0
 

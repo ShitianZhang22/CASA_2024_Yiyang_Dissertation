@@ -1,9 +1,23 @@
 import os
+import numpy as np
+import time
+
+'''
+set fixed seed for debug
+'''
+# random number generator
+# rng = np.random.default_rng(seed=int(time.time()))
+rng = np.random.default_rng(seed=0)
+
+
+def reset_random_seed():
+    global rng
+    rng = np.random.default_rng(seed=int(time.time()))
+
 
 # parameters for the genetic algorithm
 elite_rate = 0.2
-cross_rate = 0.8
-random_rate = 0.3
+select_rate = 0.3
 mutate_rate = 0.01
 
 # wind farm size, cells
