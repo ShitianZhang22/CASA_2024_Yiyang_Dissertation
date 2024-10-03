@@ -50,7 +50,10 @@ class WindFarmGenetic:
 
         return
 
-    
+    '''
+    the following is wind data called in initialisation
+    useless until 8 directions
+    '''
 
     def init_1_direction_1_SSW_WindFinder_Max(self):
         self.theta = np.array([9 * np.pi / 16.0], dtype=np.float32)
@@ -77,7 +80,12 @@ class WindFarmGenetic:
         self.velocity = np.array([4.5], dtype=np.float32)  # 1
         self.f_theta_v = np.array([[0.15], [0.2], [0.23], [0.42]], dtype=np.float32)
         return
-    
+
+    '''
+    max and min are Jan and July
+    not make sense with uniform wind speed
+    f_theta_v is proportion of wind in 8 directions
+    '''
     def init_8_direction_1_WeatherSpark_Max(self):
         self.theta = np.array(
             [0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0, 7 * np.pi / 4.0], dtype=np.float32)  # 1.0/4
@@ -95,6 +103,11 @@ class WindFarmGenetic:
     def cost(self, N):
         return 1.0 * N * (2.0 / 3.0 + 1.0 / 3.0 * math.exp(-0.00174 * N ** 2))
 
+    '''
+    generate the 1st gen of layouts (via gen_pop method)
+    then update init_pop_nonezero_indices, with each row a layout.
+    Non-zero coordinates (turbines) are recorded within. (process can be realised via numpy built-in methods)
+    '''
     def gen_init_pop(self):
         self.init_pop = LayoutGridMCGenerator.gen_pop(rows=self.rows, cols=self.cols, n=self.pop_size, N=self.N)
         self.init_pop_nonezero_indices = np.zeros((self.pop_size, self.N), dtype=np.int32)
@@ -121,6 +134,10 @@ class WindFarmGenetic:
                     ind_indices += 1
         return
 
+    '''
+    calculate denominator of formula 1, or ideal power generation
+    since only one wind speed is used here, the proportions of directions are also useless
+    '''
     def cal_P_rate_total(self):
         f_p = 0.0
         for ind_t in range(len(self.theta)):
@@ -134,6 +151,9 @@ class WindFarmGenetic:
             power[i] = self.turbine.P_i_X(velocity[i])
         return power
 
+    '''
+    initialising some storage space and no calculation?
+    '''
     # generate dataset to build the wind distribution surface
     def mc_gen_xy(self, rows, cols, layouts, n, N, xfname, yfname):
         layouts_cr = np.zeros((rows * cols, 2), dtype=np.int32)  # layouts column row index
@@ -148,6 +168,10 @@ class WindFarmGenetic:
         # print(sum_layout_power)
         # print(mean_power)
         # print(n_copies)
+        '''
+        1-D coordinate to 2-D and stored in layouts_cr (2 cols)
+        just cross ref again, can get directly
+        '''
         for ind in range(rows * cols):
             r_i = np.floor(ind / cols)
             c_i = np.floor(ind - r_i * cols)
@@ -157,8 +181,15 @@ class WindFarmGenetic:
         np.savetxt(yfname, mean_power, fmt='%f', delimiter="  ")
         return
 
+    '''
+    fitness evaluation for each layouts
+    iterate with rows at the outer for loop
+    '''
     def mc_fitness(self, pop, rows, cols, pop_size, N, lp):
         for i in range(pop_size):
+            '''
+            regenerate the centroid of grids as the coordinates of turbines and stored in 2 rows * N cols
+            '''
             print("layout {}...".format(i))
             xy_position = np.zeros((2, N), dtype=np.float32)  # x y position
             cr_position = np.zeros((2, N), dtype=np.int32)  # column row position
@@ -176,12 +207,19 @@ class WindFarmGenetic:
                     ind_pos += 1
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
             for ind_t in range(len(self.theta)):
+                '''
+                fix wind direction and rotate the layout (7 times) for different direction of winds
+                '''
                 for ind_v in range(len(self.velocity)):
                     trans_matrix = np.array(
                         [[np.cos(self.theta[ind_t]), -np.sin(self.theta[ind_t])],
                          [np.sin(self.theta[ind_t]), np.cos(self.theta[ind_t])]],
                         np.float32)
                     trans_xy_position = np.matmul(trans_matrix, xy_position)
+                    '''
+                    wake calculation
+                    check later
+                    '''
                     speed_deficiency = self.wake_calculate(trans_xy_position, N)
 
                     actual_velocity = (1 - speed_deficiency) * self.velocity[ind_v]
@@ -194,6 +232,9 @@ class WindFarmGenetic:
 
         return
 
+    '''
+    no usage
+    '''
     # conventional genetic algorithm for WFLOP (wind farm layout optimization problem)
     def MC_gen_alg(self):
         mars = MARS.MARS()
@@ -323,6 +364,9 @@ class WindFarmGenetic:
             power[i] = self.turbine.P_i_X(velocity[i])
         return power
 
+    '''
+    this and the next are to calculate wakes with formula in the paper
+    '''
     def wake_calculate(self, trans_xy_position, N):
         # print(-trans_xy_position)
         sorted_index = np.argsort(-trans_xy_position[1, :])  # y value descending
@@ -375,8 +419,20 @@ class WindFarmGenetic:
         else:
             return np.pi * r ** 2
 
+    '''
+    genetic method
+    '''
     def conventional_genetic_alg(self, ind_time, result_folder):  # conventional genetic algorithm
+        """
+        name of variants or methods and contents:
+        fitness_value: calculate the power generated by each turbine in each layout, sorted (stored in indices) from
+        the lowest to the highest
+        power_order: reverse the above and store the value; index in sorted_index
+        """
         P_rate_total = self.cal_P_rate_total()
+        '''
+        the above is formula 1 for ideal power generation
+        '''
         start_time = datetime.now()
         print("conventional genetic algorithm starts....")
         fitness_generations = np.zeros(self.iteration, dtype=np.float32)  # best fitness value in each generation
@@ -394,6 +450,9 @@ class WindFarmGenetic:
 
         # 新增数组来存储每代最优个体的eta值历史
         best_eta_history = np.zeros(self.iteration, dtype=np.float32)
+        '''
+        power for each turbine in a layout is stored in fitness_value
+        '''
 
         for gen in range(self.iteration):
             print("generation {}...".format(gen))
@@ -419,6 +478,9 @@ class WindFarmGenetic:
                 else:
                     fitness_generations[gen] = fitness_generations[gen - 1]
                     best_layout_generations[gen, :] = best_layout_generations[gen - 1, :]
+            '''
+            select, crossover and mutate
+            '''
             n_parents, parent_layouts, parent_pop_indices = self.conventional_select(pop=pop, pop_indices=pop_indices,
                                                                                      pop_size=self.pop_size,
                                                                                      elite_rate=self.elite_rate,
@@ -509,6 +571,13 @@ class WindFarmGenetic:
         parent_pop_indices = pop_indices[parents_ind, :]
         return len(parent_pop_indices), parent_layouts, parent_pop_indices
 
+    '''
+    no input?
+    the following method is nearly the same with mc_fitness with only differences in last several rows
+    lp_power_accum stores power of each turbine in each layout
+    then the total power of each layout is stored in the returned fitness_val
+    po stores the indices of turbines sorted by power low to high, but no return?
+    '''
     def conventional_fitness(self, pop, rows, cols, pop_size, N, po):
         fitness_val = np.zeros(pop_size, dtype=np.float32)
         for i in range(pop_size):
@@ -528,6 +597,9 @@ class WindFarmGenetic:
                     xy_position[1, ind_pos] = r_i * self.cell_width + self.cell_width_half
                     ind_position[ind_pos] = ind
                     ind_pos += 1
+            '''
+            above coordinate transfer again
+            '''
             lp_power_accum = np.zeros(N, dtype=np.float32)  # a specific layout power accumulate
             for ind_t in range(len(self.theta)):
                 for ind_v in range(len(self.velocity)):
@@ -595,6 +667,10 @@ class WindFarmGenetic:
         return eta, fitness_value[0], P_rate_total
 
 
+'''
+turbine class
+also surface roughness
+'''
 class GE_1_5_sleTurbine:
     hub_height = 80.0  # unit (m)
     rator_diameter = 77.0  # unit m
@@ -606,10 +682,16 @@ class GE_1_5_sleTurbine:
 
     def __init__(self):
         self.rator_radius = self.rator_diameter / 2
-
+        '''
+        the following is alpha in formula 4
+        '''
         self.entrainment_const = 0.5 / np.log(self.hub_height / self.surface_roughness)
         return
 
+    '''
+    power generation according to wind speed
+    formula 7
+    '''
     # power curve
     def P_i_X(self, v):
         if v < 2.0:
@@ -631,6 +713,9 @@ class LayoutGridMCGenerator:
     # n : number of layouts
     # N : number of turbines
     # lofname : layouts file name
+    '''
+    another layout set again?
+    '''
     def gen_mc_grid(rows, cols, n, N, lofname):  # generate monte carlo wind farm layout grids
         np.random.seed(seed=int(time.time()))  # init random seed
         layouts = np.zeros((n, rows * cols), dtype=np.int32)  # one row is a layout
@@ -660,6 +745,10 @@ class LayoutGridMCGenerator:
         # np.savetxt(xfname, layouts_cr, fmt='%d', delimiter="  ")
         return layouts
 
+    '''
+    generate random layout (may duplicate) according to grids and number of turbines
+    returns a set of layouts with each row as a layout (1-D)
+    '''
     # generate population
     def gen_pop(rows, cols, n,
                 N):  # generate population very similar to gen_mc_grid, just without saving layouts to a file
