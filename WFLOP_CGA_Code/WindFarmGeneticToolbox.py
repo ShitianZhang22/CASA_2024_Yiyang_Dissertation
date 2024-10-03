@@ -1,36 +1,20 @@
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import time
 import MARS
 from datetime import datetime
-import pickle
+from config import *
 
-__version__ = "1.0.0"
+'''
+version: 1.0.0
+'''
 
 
 # np.random.seed(seed=int(time.time()))
 class WindFarmGenetic:
-    # parameters for genetic algorithms
-    elite_rate = 0.2
-    cross_rate = 0.8
-    random_rate = 0.3
-    mutate_rate = 0.01
-    turbine = None
-
-    pop_size = 0  # number of individuals in a population
-    N = 0  # number of wind turbines
-    rows = 0  # number of rows : cells
-    cols = 0  # number of columns : cells
-    cell_width = 0  # cell width
-    cell_width_half = 0  # half cell width
-    iteration = 0  # number of iterations of genetic algorithm
 
     # constructor of class WindFarmGenetic
-    def __init__(self, rows=0, cols=0, N=0, pop_size=0,
-                 iteration=0, cell_width=0, elite_rate=0.2,
-                 cross_rate=0.6, random_rate=0.5, mutate_rate=0.1):
+    def __init__(self):
         self.turbine = GE_1_5_sleTurbine()
         self.rows = rows
         self.cols = cols
@@ -48,40 +32,8 @@ class WindFarmGenetic:
         self.init_pop = None
         self.init_pop_nonezero_indices = None
 
-        return
-
     '''
     the following is wind data called in initialisation
-    useless until 8 directions
-    '''
-
-    def init_1_direction_1_SSW_WindFinder_Max(self):
-        self.theta = np.array([9 * np.pi / 16.0], dtype=np.float32)
-        self.velocity = np.array([5.66], dtype=np.float32)
-        self.f_theta_v = np.array([[1.0]], dtype=np.float32)
-        return
-    
-    def init_1_direction_1_SSW_WindFinder_Min(self):
-        self.theta = np.array([5 * np.pi / 4.0], dtype=np.float32)
-        self.velocity = np.array([2.57222], dtype=np.float32)
-        self.f_theta_v = np.array([[1.0]], dtype=np.float32)
-        return
-
-    def init_4_direction_1_WeatherSpark_Max(self):
-        self.theta = np.array(
-            [0, np.pi / 2.0, np.pi, 9 * np.pi / 6.0], dtype=np.float32)  # 1.0/4
-        self.velocity = np.array([6.56], dtype=np.float32)  # 1
-        self.f_theta_v = np.array([[0.11], [0.21], [0.3], [0.38]], dtype=np.float32)
-        return
-    
-    def init_4_direction_1_WeatherSpark_Min(self):
-        self.theta = np.array(
-            [0, np.pi / 2.0, np.pi, 9 * np.pi / 6.0], dtype=np.float32)  # 1.0/4
-        self.velocity = np.array([4.5], dtype=np.float32)  # 1
-        self.f_theta_v = np.array([[0.15], [0.2], [0.23], [0.42]], dtype=np.float32)
-        return
-
-    '''
     max and min are Jan and July
     not make sense with uniform wind speed
     f_theta_v is proportion of wind in 8 directions
@@ -91,14 +43,12 @@ class WindFarmGenetic:
             [0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0, 7 * np.pi / 4.0], dtype=np.float32)  # 1.0/4
         self.velocity = np.array([6.67], dtype=np.float32)  # 1
         self.f_theta_v = np.array([[0.14], [0.06], [0.2], [0.09], [0.22], [0.08], [0.16], [0.05]], dtype=np.float32)
-        return
     
     def init_8_direction_1_WeatherSpark_Min(self):
         self.theta = np.array(
             [0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0, 7 * np.pi / 4.0], dtype=np.float32)  # 1.0/4
         self.velocity = np.array([4.5], dtype=np.float32)  # 1
         self.f_theta_v = np.array([[0.2], [0.04], [0.15], [0.06], [0.2], [0.1], [0.18], [0.07]], dtype=np.float32)
-        return
 
     def cost(self, N):
         return 1.0 * N * (2.0 / 3.0 + 1.0 / 3.0 * math.exp(-0.00174 * N ** 2))
@@ -117,11 +67,9 @@ class WindFarmGenetic:
                 if self.init_pop[ind_init_pop, ind] == 1:
                     self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
                     ind_indices += 1
-        return
 
     def save_init_pop(self, fname):
         np.savetxt(fname, self.init_pop, fmt='%d', delimiter="  ")
-        return
 
     def load_init_pop(self, fname):
         self.init_pop = np.genfromtxt(fname, delimiter="  ", dtype=np.int32)
@@ -132,7 +80,6 @@ class WindFarmGenetic:
                 if self.init_pop[ind_init_pop, ind] == 1:
                     self.init_pop_nonezero_indices[ind_init_pop, ind_indices] = ind
                     ind_indices += 1
-        return
 
     '''
     calculate denominator of formula 1, or ideal power generation
@@ -179,7 +126,6 @@ class WindFarmGenetic:
             layouts_cr[ind, 1] = r_i
         np.savetxt(xfname, layouts_cr, fmt='%d', delimiter="  ")
         np.savetxt(yfname, mean_power, fmt='%f', delimiter="  ")
-        return
 
     '''
     fitness evaluation for each layouts
@@ -230,8 +176,6 @@ class WindFarmGenetic:
 
             lp[i, ind_position] = lp_power_accum
 
-        return
-
     '''
     no usage
     '''
@@ -269,19 +213,16 @@ class WindFarmGenetic:
         filename = "MC_best_layouts_N{}.dat".format(self.N)
         np.savetxt(filename, best_layout_generations, fmt='%d', delimiter="  ")
         print("Monte Carlo genetic algorithm ends.")
-        return
 
     # rN : reproduce number
     def MC_reproduce(self, pop, eN, rN):
         copies = int(rN / eN)
         for i in range(eN):
             pop[eN + copies * i:eN + copies * (i + 1), :] = pop[i, :]
-        return
 
     # crossover from start index to end index (start index included, end index excluded)
     def MC_crossover(self, pop, rows, cols, pop_size, N, cN):
         pop[pop_size - cN:pop_size, :] = LayoutGridMCGenerator.gen_pop(rows=rows, cols=cols, n=cN, N=N)
-        return
 
     def MC_mutation(self, pop, rows, cols, pop_size, N, eN, mN, po, mars):
         np.random.seed(seed=int(time.time()))
@@ -311,7 +252,6 @@ class WindFarmGenetic:
                 pop[ind, turbine_pos] = 0
                 pop[ind, null_turbine_pos] = 1
                 ind += 1
-        return
 
     def MC_fitness(self, pop, rows, cols, pop_size, N, po):
         fitness_val = np.zeros(pop_size, dtype=np.float32)
@@ -537,7 +477,6 @@ class WindFarmGenetic:
                     pop_indices[i, j] = null_turbine_pos
                     break
             pop_indices[i, :] = np.sort(pop_indices[i, :])
-        return
 
     def conventional_crossover(self, N, pop, pop_indices, pop_size, n_parents,
                                parent_layouts, parent_pop_indices):
@@ -558,7 +497,6 @@ class WindFarmGenetic:
                     pop_indices[n_counter, :cross_point] = parent_pop_indices[male, :cross_point]
                     pop_indices[n_counter, cross_point:] = parent_pop_indices[female, cross_point:]
                     n_counter += 1
-        return
 
     def conventional_select(self, pop, pop_indices, pop_size, elite_rate, random_rate):
         n_elite = int(pop_size * elite_rate)
@@ -686,7 +624,6 @@ class GE_1_5_sleTurbine:
         the following is alpha in formula 4
         '''
         self.entrainment_const = 0.5 / np.log(self.hub_height / self.surface_roughness)
-        return
 
     '''
     power generation according to wind speed

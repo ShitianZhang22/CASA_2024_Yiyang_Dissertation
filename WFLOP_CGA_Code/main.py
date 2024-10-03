@@ -8,9 +8,8 @@ import pickle
 from config import *
 
 # create an object of WindFarmGenetic
-wfg = WindFarmGeneticToolbox.WindFarmGenetic(rows=rows, cols=cols, N=N, pop_size=pop_size,
-                                             iteration=iteration, cell_width=cell_width, elite_rate=elite_rate,
-                                             cross_rate=cross_rate, random_rate=random_rate, mutate_rate=mutate_rate)
+wfg = WindFarmGeneticToolbox.WindFarmGenetic()
+
 # set wind distribution
 # wind distribution is discrete (number of wind speeds) by (number of wind directions)
 
@@ -92,11 +91,6 @@ results_data_folder = "data/results"
 if not os.path.exists(results_data_folder):
     os.makedirs(results_data_folder)
 
-'''
-originally it is 3 times but 1 for test
-'''
-# n_run_times = 3  # number of run times
-n_run_times = 1  # number of run times
 # result_arr stores the best conversion efficiency of each run
 result_arr = np.zeros((n_run_times, 2), dtype=np.float32)
 
