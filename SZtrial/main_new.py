@@ -2,11 +2,14 @@
 This is a new trial on GA wind farm optimisation using PyGAD library.
 Primarily we set the spatial range as 5 rows * 6 cols, or 30 grids.
 Expanding from left to right, then from top to bottom
+
+Main doubts:
+1. if we need to sort the coordinates
 """
 
 import pygad
 from config import *
-from fitness import *
+from fitness import fitness_func
 
 ga_instance = pygad.GA(num_generations=num_generations,
                        num_parents_mating=num_parents_mating,
@@ -25,6 +28,7 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        mutation_probability=mutation_probability,
                        mutation_by_replacement=mutation_by_replacement,
                        gene_space=gene_space,
+                       on_start=on_start,
                        on_generation=on_generation,
                        allow_duplicate_genes=False,
                        stop_criteria=None,
@@ -33,7 +37,7 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        logger=None,
                        )
 ga_instance.run()
-ga_instance.plot_fitness()
 solution, solution_fitness, solution_idx = ga_instance.best_solution()
+ga_instance.plot_fitness()
 print("Parameters of the best solution : {solution}".format(solution=solution))
 print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
