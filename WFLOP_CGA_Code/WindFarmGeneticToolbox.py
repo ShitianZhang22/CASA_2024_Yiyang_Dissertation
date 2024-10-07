@@ -306,7 +306,10 @@ class WindFarmGenetic:
         np.savetxt(filename, best_eta_history, fmt='%f', delimiter="  ")
 
         return run_time, eta_generations[iteration - 1]
-
+    '''
+    mutation
+    move a random turbine to a vacant position
+    '''
     def conventional_mutation(self, rows, cols, N, pop, pop_indices, pop_size, mutation_rate):
         # reset_random_seed()
         for i in range(pop_size):
@@ -328,6 +331,11 @@ class WindFarmGenetic:
                     break
             pop_indices[i, :] = np.sort(pop_indices[i, :])
 
+    '''
+    crossover
+    randomly select two parents and use 1st to xth turbines of one parent and x+1th to Nth turbines of another
+    problem: no duplicate check
+    '''
     def conventional_crossover(self, N, pop, pop_indices, pop_size, n_parents,
                                parent_layouts, parent_pop_indices):
         n_counter = 0
