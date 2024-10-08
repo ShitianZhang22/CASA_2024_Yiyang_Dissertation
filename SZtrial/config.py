@@ -1,11 +1,13 @@
 import os
 import numpy as np
-import time
 
-num_generations = 50
-num_parents_mating = 2
-sol_per_pop = 50
-num_genes = 215
+num_generations = 10
+
+sol_per_pop = 20
+select_rate = 0.3
+num_parents_mating = int(sol_per_pop * select_rate)
+
+num_genes = 215  # number of wind turbines
 
 # wind farm size, cells
 rows = 58
@@ -31,33 +33,12 @@ mutation_by_replacement = True
 
 gene_space = range(rows * cols)  # this should be manually set later
 
-
-def on_start(ga):
-    print("Initial population\n", ga.initial_population)
-
-
-def on_generation(ga):
-    print("Generation", ga.generations_completed)
-    print(ga.population)
-
+parallel_processing = None
+# parallel_processing = ['process', 10]
 
 '''
 ================================================================
 '''
-
-
-
-'''
-set fixed seed for debug
-'''
-# random number generator
-# rng = np.random.default_rng(seed=int(time.time()))
-rng = np.random.default_rng(seed=0)
-
-
-def reset_random_seed():
-    global rng
-    rng = np.random.default_rng(seed=int(time.time()))
 
 
 theta = np.array([0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi / 4.0, 3 * np.pi / 2.0,
@@ -65,11 +46,6 @@ theta = np.array([0, np.pi / 4.0, np.pi / 2.0, 3 * np.pi / 4.0, np.pi, 5 * np.pi
 velocity = np.array([4.5] * 8, dtype=np.float32)
 
 
-# parameters for the genetic algorithm
-select_rate = 0.3
-mutate_rate = 0.01
-
-N = 215  # number of wind turbines
 '''
 originally 200 and 30, set 10 and 3 for test
 '''

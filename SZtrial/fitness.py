@@ -15,18 +15,24 @@ for i in range(cols):
     xy[:, i, 0] = i
 xy = xy.reshape(rows * cols, 2)
 xy = xy * cell_width + cell_width / 2
+xy = xy.transpose()
+
+trans_matrix = np.zeros((len(theta), 2, 2), dtype=np.float32)
+trans_xy = np.zeros((len(theta), 2, rows * cols), dtype=np.float32)
+for i in range(len(theta)):
+    trans_matrix[i] = np.array(
+        [[np.cos(theta[i]), -np.sin(theta[i])],
+         [np.sin(theta[i]), np.cos(theta[i])]],
+        dtype=np.float32)
+    trans_xy[i] = np.matmul(trans_matrix[i], xy)
 
 
 def fitness_func(ga_instance, solution, solution_idx):
-    xy_position = xy[solution].transpose()
+    xy_position = xy[:, solution]
     fitness = 0  # a specific layout power accumulate
     for ind_t in range(len(theta)):
-        trans_matrix = np.array(
-                [[np.cos(theta[ind_t]), -np.sin(theta[ind_t])],
-                 [np.sin(theta[ind_t]), np.cos(theta[ind_t])]],
-                np.float32)
-
-        trans_xy_position = np.matmul(trans_matrix, xy_position)
+        # need an extra transpose. the indices will auto trans once
+        trans_xy_position = trans_xy[ind_t, :, solution].transpose()
 
         speed_deficiency = wake(trans_xy_position)
 
@@ -52,19 +58,15 @@ def wake(trans_xy_position):
 
 def cal_deficiency(dx, dy):
     r_wake = rotor_radius + entrainment_const * dy
-    intersection = cal_intersection(dx=dx, dy=dy, r_wake=r_wake)
-    return 2.0 / 3.0 * intersection / (np.pi * r_wake ** 2)
-
-
-def cal_intersection(dx, dy, r_wake):
     if dx >= rotor_radius + r_wake:
-        return 0
+        intersection = 0
     elif dx > r_wake - rotor_radius:
         alpha = np.arccos((r_wake ** 2 + dx ** 2 - rotor_radius ** 2) / (2 * r_wake * dx))
         beta = np.arccos((rotor_radius ** 2 + dx ** 2 - r_wake ** 2) / (2 * rotor_radius * dx))
-        return alpha * r_wake ** 2 + beta * rotor_radius ** 2 - r_wake * dx * np.sin(alpha)
+        intersection = alpha * r_wake ** 2 + beta * rotor_radius ** 2 - r_wake * dx * np.sin(alpha)
     else:
-        return np.pi * rotor_radius ** 2
+        intersection = np.pi * rotor_radius ** 2
+    return 2.0 / 3.0 * intersection / (np.pi * r_wake ** 2)
 
 
 def layout_power(v):

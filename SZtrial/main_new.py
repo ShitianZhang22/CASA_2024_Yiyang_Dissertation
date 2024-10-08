@@ -10,6 +10,19 @@ Main doubts:
 import pygad
 from config import *
 from fitness import fitness_func
+import time
+import cProfile
+
+t = time.time()
+
+
+def on_start(ga):
+    print("Initial population\n", ga.initial_population)
+
+
+def on_generation(ga):
+    print("Generation", ga.generations_completed)
+
 
 ga_instance = pygad.GA(num_generations=num_generations,
                        num_parents_mating=num_parents_mating,
@@ -28,16 +41,19 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        mutation_probability=mutation_probability,
                        mutation_by_replacement=mutation_by_replacement,
                        gene_space=gene_space,
-                       on_start=on_start,
+                       on_start=None,
                        on_generation=on_generation,
+                       suppress_warnings=True,
                        allow_duplicate_genes=False,
                        stop_criteria=None,
-                       parallel_processing=None,
+                       parallel_processing=parallel_processing,
                        random_seed=None,
-                       logger=None,
                        )
-ga_instance.run()
-solution, solution_fitness, solution_idx = ga_instance.best_solution()
-ga_instance.plot_fitness()
-print("Parameters of the best solution : {solution}".format(solution=solution))
-print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+if __name__ == '__main__':
+    # ga_instance.run()
+    cProfile.run('ga_instance.run()')
+    solution, solution_fitness, solution_idx = ga_instance.best_solution()
+    print("Parameters of the best solution : {solution}".format(solution=solution))
+    print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
+    print(time.time() - t)
+    ga_instance.plot_fitness()
