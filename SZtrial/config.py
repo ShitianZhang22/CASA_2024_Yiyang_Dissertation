@@ -1,25 +1,28 @@
 import os
 import numpy as np
 
-num_generations = 10
+num_generations = 200
 
-sol_per_pop = 20
+sol_per_pop = 50
 select_rate = 0.3
 num_parents_mating = int(sol_per_pop * select_rate)
 
-num_genes = 215  # number of wind turbines
+# num_genes = 215  # number of wind turbines
+num_genes = 2
 
 # wind farm size, cells
-rows = 58
-cols = 73
+# rows = 58
+# cols = 73
+rows = 5
+cols = 5
 
 cell_width = 77.0 * 2  # unit : m
 init_range_high = rows * cols - 1
 
-parent_selection_type = 'rank'
+parent_selection_type = 'sss'
 keep_parents = -1
 
-elite_rate = 0.2
+elite_rate = 0.1
 keep_elitism = int(sol_per_pop * elite_rate)
 
 crossover_type = 'single_point'
@@ -32,6 +35,8 @@ mutation_probability = 0.01  # this is the mutation rate but applies to gene
 mutation_by_replacement = True
 
 gene_space = range(rows * cols)  # this should be manually set later
+
+stop_criteria = None
 
 parallel_processing = None
 # parallel_processing = ['process', 10]

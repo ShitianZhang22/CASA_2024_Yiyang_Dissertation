@@ -45,13 +45,13 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        on_generation=on_generation,
                        suppress_warnings=True,
                        allow_duplicate_genes=False,
-                       stop_criteria=None,
+                       stop_criteria=stop_criteria,
                        parallel_processing=parallel_processing,
                        random_seed=None,
                        )
 if __name__ == '__main__':
-    # ga_instance.run()
-    cProfile.run('ga_instance.run()')
+    ga_instance.run()
+    # cProfile.run('ga_instance.run()')
     solution, solution_fitness, solution_idx = ga_instance.best_solution()
     print("Parameters of the best solution : {solution}".format(solution=solution))
     print("Fitness value of the best solution = {solution_fitness}".format(solution_fitness=solution_fitness))
