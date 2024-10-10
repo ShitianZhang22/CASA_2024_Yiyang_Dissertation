@@ -21,8 +21,8 @@ trans_matrix = np.zeros((len(theta), 2, 2), dtype=np.float32)
 trans_xy = np.zeros((len(theta), 2, rows * cols), dtype=np.float32)
 for i in range(len(theta)):
     trans_matrix[i] = np.array(
-        [[np.cos(theta[i]), np.sin(theta[i])],
-         [-np.sin(theta[i]), np.cos(theta[i])]],
+        [[np.cos(theta[i]), -np.sin(theta[i])],
+         [np.sin(theta[i]), np.cos(theta[i])]],
         dtype=np.float32)
     trans_xy[i] = np.matmul(trans_matrix[i], xy)
 
@@ -32,7 +32,6 @@ def fitness_func(ga_instance, solution, solution_idx):
     for ind_t in range(len(theta)):
         # need an extra transpose. the indices will auto trans once
         trans_xy_position = trans_xy[ind_t, :, solution].transpose()
-        print(trans_xy_position)
 
         speed_deficiency = wake(trans_xy_position)
 
@@ -43,8 +42,7 @@ def fitness_func(ga_instance, solution, solution_idx):
 
 
 def wake(trans_xy_position):
-    # y value increasing, making theta correspondent to the wind direction
-    # to do: we can directly sort genes
+    # y value increasingly sort
     sorted_index = np.argsort(trans_xy_position[1, :])
     wake_deficiency = np.zeros(num_genes, dtype=np.float32)
     for j in range(num_genes):
@@ -52,8 +50,9 @@ def wake(trans_xy_position):
             dx = np.absolute(trans_xy_position[0, sorted_index[j]] - trans_xy_position[0, sorted_index[k]])
             dy = np.absolute(trans_xy_position[1, sorted_index[j]] - trans_xy_position[1, sorted_index[k]])
             d = cal_deficiency(dx=dx, dy=dy)
-            wake_deficiency[sorted_index[j]] += d ** 2
+            wake_deficiency[sorted_index[k]] += d ** 2
     return np.sqrt(wake_deficiency)
+
 
 def cal_deficiency(dx, dy):
     r_wake = rotor_radius + entrainment_const * dy
@@ -80,5 +79,5 @@ def layout_power(v):
 
 
 if __name__ == '__main__':
-    a = fitness_func(None, [0, 1], 0)
+    a = fitness_func(None, [3349, 2685, 3663, 896, 2268, 4090, 266, 3303, 1824, 3428, 964, 163, 2391, 1111, 738, 1044, 3098, 2460, 1804, 2833], 0)
     print(a)

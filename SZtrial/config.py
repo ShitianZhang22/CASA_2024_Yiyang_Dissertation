@@ -1,20 +1,20 @@
 import os
 import numpy as np
 
-num_generations = 200
+num_generations = 10
 
-sol_per_pop = 50
+sol_per_pop = 200
 select_rate = 0.3
 num_parents_mating = int(sol_per_pop * select_rate)
 
 # num_genes = 215  # number of wind turbines
-num_genes = 2
+num_genes = 215
 
 # wind farm size, cells
-# rows = 58
-# cols = 73
-rows = 5
-cols = 5
+rows = 58
+cols = 73
+# rows = 5
+# cols = 5
 
 cell_width = 77.0 * 2  # unit : m
 init_range_high = rows * cols - 1
@@ -38,8 +38,10 @@ gene_space = range(rows * cols)  # this should be manually set later
 
 stop_criteria = None
 
-parallel_processing = None
-# parallel_processing = ['process', 10]
+# parallel_processing = None
+parallel_processing = ['process', 10]
+
+random_seed = 0
 
 '''
 ================================================================
