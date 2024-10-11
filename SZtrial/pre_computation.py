@@ -1,5 +1,3 @@
-import numpy as np
-
 from config import *
 
 
@@ -37,5 +35,5 @@ for i in range(2):
 data = data.reshape((2, rc, rc))
 data[0] = data[0].transpose()
 data[1] = data[1].transpose()
-np.savetxt(r'data/wake2.txt', data[0], fmt='%f', delimiter=',', encoding='utf-8')
-np.savetxt(r'data/wake3.txt', data[1], fmt='%f', delimiter=',', encoding='utf-8')
+np.savetxt(r'data/wake0.txt', data[0], fmt='%f', delimiter=',', encoding='utf-8')
+np.savetxt(r'data/wake1.txt', data[1], fmt='%f', delimiter=',', encoding='utf-8')

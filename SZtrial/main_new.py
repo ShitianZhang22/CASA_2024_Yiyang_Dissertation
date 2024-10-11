@@ -1,10 +1,15 @@
 """
-This is a new trial on GA wind farm optimisation using PyGAD library.
-Primarily we set the spatial range as 5 rows * 6 cols, or 30 grids.
+This is the currently used wind farm layout optimisation algorithm using PyGAD library.
 Expanding from left to right, then from top to bottom
 
-Main doubts:
-1. if we need to sort the coordinates
+version 3.0
+** Please make sure that 'data/wake0.txt' and 'data/wake1.txt' exist. Otherwise, run pre_computation.py first.
+
+Files in use:
+main_new.py
+config.py
+fitness_pre.py
+pre_computation.py
 """
 
 import pygad
