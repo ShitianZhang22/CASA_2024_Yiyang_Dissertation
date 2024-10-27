@@ -3,7 +3,6 @@ This is the configuration file and contains most of the hyperparameters.
 """
 
 import os
-
 import numpy as np
 
 '''
